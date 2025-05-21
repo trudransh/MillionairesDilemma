@@ -30,7 +30,6 @@ library LibComparison {
         e.allowThis(aliceWins);
         e.allowThis(bobWins);
 
-        // Optimize: Nested e.select to reduce TEE operations
         return e.select(aliceWins, e.asEuint256(2), e.select(bobWins, e.asEuint256(1), e.asEuint256(0)));
     }
 }
