@@ -12,13 +12,24 @@ import "./interface/IMillionairesDilemma.sol";
 /// @notice Confidential smart contract for comparing wealth of three participants using Inco Lightning
 /// @dev Ensures only the richest participant's identity is revealed, following Inco best practices
 contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
-
+    /// @dev Reverts if caller is not a participant
     error NotParticipant();
+    /// @dev Reverts if participant has already submitted
     error AlreadySubmitted();
+    /// @dev Reverts if not all participants have submitted
     error IncompleteSubmissions();
-    error ComparisonAlreadyDone();  
+    /// @dev Reverts if comparison has already been done
+    error ComparisonAlreadyDone();
+    /// @dev Reverts if comparison has not been done
     error ComparisonNotDone();
+    /// @dev Reverts if caller is not authorized to handle encrypted value
     error UnauthorizedValueHandle();
+    /// @dev Reverts if zero address is provided
+    error ZeroAddress();
+    /// @dev Reverts if duplicate addresses are provided
+    error DuplicateAddresses();
+    /// @dev Reverts if invalid winner code is provided
+    error InvalidWinnerCode();
 
     address public immutable alice;
     address public immutable bob;
@@ -36,6 +47,12 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
     /// @param _bob Address of the second participant
     /// @param _eve Address of the third participant
     constructor(address _alice, address _bob, address _eve) Ownable(msg.sender) {
+        if (_alice == address(0) || _bob == address(0) || _eve == address(0)) {
+            revert ZeroAddress();
+        }
+        if (_alice == _bob || _alice == _eve || _bob == _eve) {
+            revert DuplicateAddresses();
+        }
         alice = _alice;
         bob = _bob;
         eve = _eve;
@@ -49,6 +66,7 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         _;
     }
 
+    /// @inheritdoc IMillionairesDilemma
     function submitWealth(bytes memory valueInput) external override onlyParticipants nonReentrant {
         if (hasSubmitted[msg.sender]) {
             revert AlreadySubmitted();
@@ -63,6 +81,7 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         emit WealthSubmitted(msg.sender);
     }
 
+    /// @inheritdoc IMillionairesDilemma
     function submitWealth(euint256 encryptedWealth) external override onlyParticipants nonReentrant {
         if (hasSubmitted[msg.sender]) {
             revert AlreadySubmitted();
@@ -80,11 +99,11 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         emit WealthSubmitted(msg.sender);
     }
 
+    /// @inheritdoc IMillionairesDilemma
     function compareWealth() external override nonReentrant {
         if (!hasSubmitted[alice] || !hasSubmitted[bob] || !hasSubmitted[eve]) {
             revert IncompleteSubmissions();
         }
-
         if (comparisonDone) {
             revert ComparisonAlreadyDone();
         }
@@ -98,12 +117,16 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         e.requestDecryption(result, this.processWinner.selector, "");
     }
 
-    function processWinner(
-        uint256,
-        uint256 winnerCode,
-        bytes memory
-    ) external {
+    /// @notice Processes the decrypted winner code from Inco relay
+    /// @param winnerCode Code indicating winner (2=Alice, 1=Bob, 0=Eve)
+    function processWinner(uint256, uint256 winnerCode, bytes memory) external {
         require(msg.sender == address(0x63D8135aF4D393B1dB43B649010c8D3EE19FC9fd), "Unauthorized");
+        if (comparisonDone) {
+            revert ComparisonAlreadyDone();
+        }
+        if (winnerCode > 2) {
+            revert InvalidWinnerCode();
+        }
         
         if (winnerCode == 2) {
             winner = "Alice";
@@ -117,6 +140,7 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         emit ComparisonCompleted(winner);
     }
 
+    /// @inheritdoc IMillionairesDilemma
     function getWinner() external view override returns (string memory) {
         if (!comparisonDone) {
             revert ComparisonNotDone();
@@ -124,8 +148,21 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         return winner;
     }
 
-    /// @notice Check if a participant has submitted their wealth
+    /// @inheritdoc IMillionairesDilemma
     function hasParticipantSubmitted(address participant) external view override returns (bool) {
         return hasSubmitted[participant];
     }
-} 
+
+    /// @notice Resets the contract state for reuse
+    /// @dev Only callable by the owner
+    function reset() external onlyOwner {
+        wealth[alice] = e.asEuint256(0);
+        wealth[bob] = e.asEuint256(0);
+        wealth[eve] = e.asEuint256(0);
+        hasSubmitted[alice] = false;
+        hasSubmitted[bob] = false;
+        hasSubmitted[eve] = false;
+        winner = "";
+        comparisonDone = false;
+    }
+}
