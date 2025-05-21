@@ -1,26 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@inco/lightning/src/Lib.sol";
+import {euint256, ebool, e} from "@inco/lightning/src/Lib.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./LibComparison.sol";
 import "./interface/IMillionairesDilemma.sol";
 
 /// @title MillionairesDilemma
-/// @author Your Name
+/// @author Rudransh Singh Tomar
 /// @notice Confidential smart contract for comparing wealth of three participants using Inco Lightning
 /// @dev Ensures only the richest participant's identity is revealed, following Inco best practices
 contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
-    // Custom errors
+
     error NotParticipant();
     error AlreadySubmitted();
     error IncompleteSubmissions();
-    error ComparisonAlreadyDone();
+    error ComparisonAlreadyDone();  
     error ComparisonNotDone();
     error UnauthorizedValueHandle();
 
-    // State variables
     address public immutable alice;
     address public immutable bob;
     address public immutable eve;
@@ -51,73 +50,81 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         _;
     }
 
-    /// @inheritdoc IMillionairesDilemma
     function submitWealth(bytes memory valueInput) external override onlyParticipants nonReentrant {
         if (hasSubmitted[msg.sender]) {
             revert AlreadySubmitted();
         }
         
-        // Create new encrypted value from input with caller as allowed party
-        euint256 encryptedWealth = valueInput.newEuint256(msg.sender);
+        // The correct way to create an encrypted value from bytes
+        euint256 encryptedWealth = e.newEuint256(valueInput, msg.sender);
+        e.allowThis(encryptedWealth);
         
-        // Allow contract access to this value
-        encryptedWealth.allowThis();
-        
-        // Store and mark as submitted
         wealth[msg.sender] = encryptedWealth;
         hasSubmitted[msg.sender] = true;
         
         emit WealthSubmitted(msg.sender);
     }
 
-    /// @inheritdoc IMillionairesDilemma
     function submitWealth(euint256 encryptedWealth) external override onlyParticipants nonReentrant {
         if (hasSubmitted[msg.sender]) {
             revert AlreadySubmitted();
         }
         
         // Check if caller has access to the encrypted value
-        if (!msg.sender.isAllowed(encryptedWealth)) {
+        // The correct way to check permission is e.isAllowed(user, value)
+        if (!e.isAllowed(msg.sender, encryptedWealth)) {
             revert UnauthorizedValueHandle();
         }
         
-        // Allow contract access to this value
-        encryptedWealth.allowThis();
+        // The correct way to allow access
+        e.allowThis(encryptedWealth);
         
-        // Store and mark as submitted
         wealth[msg.sender] = encryptedWealth;
         hasSubmitted[msg.sender] = true;
         
         emit WealthSubmitted(msg.sender);
     }
 
-    /// @inheritdoc IMillionairesDilemma
     function compareWealth() external override nonReentrant {
-        // Ensure all participants have submitted their wealth
         if (!hasSubmitted[alice] || !hasSubmitted[bob] || !hasSubmitted[eve]) {
             revert IncompleteSubmissions();
         }
-        
-        // Prevent multiple comparisons
+
         if (comparisonDone) {
             revert ComparisonAlreadyDone();
         }
 
-        // Use the comparison library to determine the winner
-        winner = LibComparison.determineWinner(
+        // Get encrypted comparison result
+        euint256 result = LibComparison.prepareWinnerDetermination(
             wealth[alice],
             wealth[bob],
-            wealth[eve],
-            alice,
-            bob,
-            eve
+            wealth[eve]
         );
+        
+        // Request decryption with callback
+        e.requestDecryption(result, this.processWinner.selector, "");
+    }
+
+    function processWinner(
+        uint256,
+        uint256 winnerCode,
+        bytes memory
+    ) external {
+        // Only Inco's contract should call this
+        require(msg.sender == address(0x63D8135aF4D393B1dB43B649010c8D3EE19FC9fd), "Unauthorized");
+        
+        if (winnerCode == 2) {
+            winner = "Alice";
+        } else if (winnerCode == 1) {
+            winner = "Bob";
+        } else {
+            winner = "Eve";
+        }
         
         comparisonDone = true;
         emit ComparisonCompleted(winner);
     }
 
-    /// @inheritdoc IMillionairesDilemma
     function getWinner() external view override returns (string memory) {
         if (!comparisonDone) {
             revert ComparisonNotDone();
@@ -125,7 +132,7 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         return winner;
     }
 
-    /// @inheritdoc IMillionairesDilemma
+    /// @notice Check if a participant has submitted their wealth
     function hasParticipantSubmitted(address participant) external view override returns (bool) {
         return hasSubmitted[participant];
     }

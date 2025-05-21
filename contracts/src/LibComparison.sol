@@ -8,32 +8,39 @@ import {euint256, ebool, e} from "@inco/lightning/src/Lib.sol";
  * @dev Library for confidential wealth comparison using Inco Lightning's euint256 and ebool.
  */
 library LibComparison {
-
     /**
-     * @dev Determines the richest participant with tie-breaking rule (Alice > Bob > Eve).
-     * @return string Winner's name
+     * @dev Prepares the comparison results for decryption
+     * @return euint256 Encrypted result code (2=Alice, 1=Bob, 0=Eve)
      */
-    function determineWinner(
+    function prepareWinnerDetermination(
         euint256 aliceWealth,
         euint256 bobWealth,
-        euint256 eveWealth,
-        address alice,
-        address bob,
-        address eve
-    ) internal view returns (string memory) {
-        ebool aliceGtBob = e.gt(aliceWealth,bobWealth);
-        ebool aliceGtEve = aliceWealth > eveWealth;
-        ebool bobGtEve = bobWealth > eveWealth;
+        euint256 eveWealth
+    ) internal returns (euint256) {
+        // Compare wealth using explicit e library functions
+        ebool aliceGtBob = e.gt(aliceWealth, bobWealth);
+        ebool aliceGtEve = e.gt(aliceWealth, eveWealth);
+        ebool bobGtEve = e.gt(bobWealth, eveWealth);
 
-        aliceGtBob.allowThis();
-        aliceGtEve.allowThis();
-        bobGtEve.allowThis();
+        // Allow contract to use encrypted comparison results
+        e.allowThis(aliceGtBob);
+        e.allowThis(aliceGtEve);
+        e.allowThis(bobGtEve);
 
-        if (aliceGtBob && aliceGtEve) {
-            return "Alice";
-        } else if (bobGtEve && !aliceGtBob) {
-            return "Bob";
-        }
-        return "Eve";
+        // Convert FHE comparison results to a FHE numeric value (0, 1, 2)
+        // 2 = Alice wins, 1 = Bob wins, 0 = Eve wins
+        euint256 result = e.asEuint256(0); // Start with 0 (Eve)
+        
+        // If Alice is richest, result = 2
+        ebool aliceWins = e.and(aliceGtBob, aliceGtEve);
+        e.allowThis(aliceWins);
+        result = e.select(aliceWins, e.asEuint256(2), result);
+        
+        // If Bob is richest and Alice isn't, result = 1
+        ebool bobWins = e.and(bobGtEve, e.not(aliceGtBob));
+        e.allowThis(bobWins);
+        result = e.select(bobWins, e.asEuint256(1), result);
+        
+        return result;
     }
 }
