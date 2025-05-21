@@ -28,7 +28,6 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
     string public winner;
     bool public comparisonDone;
 
-    // Events
     event WealthSubmitted(address indexed participant);
     event ComparisonCompleted(string winner);
 
@@ -55,7 +54,6 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
             revert AlreadySubmitted();
         }
         
-        // The correct way to create an encrypted value from bytes
         euint256 encryptedWealth = e.newEuint256(valueInput, msg.sender);
         e.allowThis(encryptedWealth);
         
@@ -70,13 +68,10 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
             revert AlreadySubmitted();
         }
         
-        // Check if caller has access to the encrypted value
-        // The correct way to check permission is e.isAllowed(user, value)
         if (!e.isAllowed(msg.sender, encryptedWealth)) {
             revert UnauthorizedValueHandle();
         }
         
-        // The correct way to allow access
         e.allowThis(encryptedWealth);
         
         wealth[msg.sender] = encryptedWealth;
@@ -94,14 +89,12 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
             revert ComparisonAlreadyDone();
         }
 
-        // Get encrypted comparison result
         euint256 result = LibComparison.prepareWinnerDetermination(
             wealth[alice],
             wealth[bob],
             wealth[eve]
         );
         
-        // Request decryption with callback
         e.requestDecryption(result, this.processWinner.selector, "");
     }
 
@@ -110,7 +103,6 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         uint256 winnerCode,
         bytes memory
     ) external {
-        // Only Inco's contract should call this
         require(msg.sender == address(0x63D8135aF4D393B1dB43B649010c8D3EE19FC9fd), "Unauthorized");
         
         if (winnerCode == 2) {
