@@ -112,7 +112,7 @@ contract TestMillionairesDilemma is IncoTest {
 
     function testUnauthorizedCannotCallbackFunction() public {
         vm.prank(notParticipant);
-        vm.expectRevert("Unauthorized");
+        vm.expectRevert(MillionairesDilemma.UnauthorizedRelay.selector);
         game.processWinner(0, 2, "");
     }
 
