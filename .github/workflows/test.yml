@@ -24,9 +24,9 @@ jobs:
           node-version: '20'
           
       - name: Install dependencies
-        run: npm ci
+        run: npm install
         
-      # New step to copy dependencies into contracts directory
+      # Copy dependencies into contracts directory
       - name: Prepare dependencies for Forge
         run: |
           # Create lib directory if it doesn't exist
