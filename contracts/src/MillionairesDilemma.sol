@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {euint256, ebool, e} from "@inco/lightning/src/Lib.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./LibComparison.sol";
-import "./interface/IMillionairesDilemma.sol";
+import {euint256, e} from "@inco/lightning/src/Lib.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {LibComparison} from "./LibComparison.sol";
+import {IMillionairesDilemma} from "./interface/IMillionairesDilemma.sol";
 
 /// @title MillionairesDilemma
 /// @author Rudransh Singh Tomar
@@ -30,6 +30,8 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
     error DuplicateAddresses();
     /// @dev Reverts if invalid winner code is provided
     error InvalidWinnerCode();
+    /// @dev Reverts if unauthorized relay is used
+    error UnauthorizedRelay();
 
     address public immutable alice;
     address public immutable bob;
@@ -71,13 +73,13 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         if (hasSubmitted[msg.sender]) {
             revert AlreadySubmitted();
         }
-        
+
         euint256 encryptedWealth = e.newEuint256(valueInput, msg.sender);
         e.allowThis(encryptedWealth);
-        
+
         wealth[msg.sender] = encryptedWealth;
         hasSubmitted[msg.sender] = true;
-        
+
         emit WealthSubmitted(msg.sender);
     }
 
@@ -86,16 +88,16 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         if (hasSubmitted[msg.sender]) {
             revert AlreadySubmitted();
         }
-        
+
         if (!e.isAllowed(msg.sender, encryptedWealth)) {
             revert UnauthorizedValueHandle();
         }
-        
+
         e.allowThis(encryptedWealth);
-        
+
         wealth[msg.sender] = encryptedWealth;
         hasSubmitted[msg.sender] = true;
-        
+
         emit WealthSubmitted(msg.sender);
     }
 
@@ -108,26 +110,24 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
             revert ComparisonAlreadyDone();
         }
 
-        euint256 result = LibComparison.prepareWinnerDetermination(
-            wealth[alice],
-            wealth[bob],
-            wealth[eve]
-        );
-        
+        euint256 result = LibComparison.prepareWinnerDetermination(wealth[alice], wealth[bob], wealth[eve]);
+
         e.requestDecryption(result, this.processWinner.selector, "");
     }
 
     /// @notice Processes the decrypted winner code from Inco relay
     /// @param winnerCode Code indicating winner (2=Alice, 1=Bob, 0=Eve)
     function processWinner(uint256, uint256 winnerCode, bytes memory) external {
-        require(msg.sender == address(0x63D8135aF4D393B1dB43B649010c8D3EE19FC9fd), "Unauthorized");
+        if (msg.sender != address(0x63D8135aF4D393B1dB43B649010c8D3EE19FC9fd)) {
+            revert UnauthorizedRelay();
+        }
         if (comparisonDone) {
             revert ComparisonAlreadyDone();
         }
         if (winnerCode > 2) {
             revert InvalidWinnerCode();
         }
-        
+
         if (winnerCode == 2) {
             winner = "Alice";
         } else if (winnerCode == 1) {
@@ -135,7 +135,7 @@ contract MillionairesDilemma is IMillionairesDilemma, Ownable, ReentrancyGuard {
         } else {
             winner = "Eve";
         }
-        
+
         comparisonDone = true;
         emit ComparisonCompleted(winner);
     }

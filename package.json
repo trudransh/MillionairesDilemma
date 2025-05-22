@@ -27,5 +27,8 @@
   "overrides": {
     "@inco/lightning": "0.1.30",
     "@inco/js": "0.1.33"
+  },
+  "dependencies": {
+    "solhint": "^5.1.0"
   }
 }

@@ -5,11 +5,11 @@ import {MillionairesDilemma} from "../MillionairesDilemma.sol";
 import {LibComparison} from "../LibComparison.sol";
 import {IncoTest} from "@inco/lightning/src/test/IncoTest.sol";
 import {GWEI} from "@inco/shared/src/TypeUtils.sol";
-import {euint256, ebool, e} from "@inco/lightning/src/Lib.sol";
+import {euint256, e} from "@inco/lightning/src/Lib.sol";
 
 contract TestMillionairesDilemma is IncoTest {
-    MillionairesDilemma game;
-    address notParticipant = address(0x4);
+    MillionairesDilemma public game;
+    address public notParticipant = address(0x4);
 
     function setUp() public override {
         super.setUp();
@@ -201,6 +201,4 @@ contract TestMillionairesDilemma is IncoTest {
         emit MillionairesDilemma.WealthSubmitted(alice);
         game.submitWealth(fakePrepareEuint256Ciphertext(100 * GWEI));
     }
-
-
 }
