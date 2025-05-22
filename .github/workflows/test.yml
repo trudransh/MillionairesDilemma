@@ -34,7 +34,6 @@ jobs:
       
       - name: Run solhint
         run: cd contracts && bunx solhint "src/**/*.sol" --formatter stylish
-        # Remove the "|| true" to make CI fail on linting errors
 
   build-and-test:
     name: Build and Test
@@ -73,12 +72,6 @@ jobs:
       - name: Run tests
         run: cd contracts && forge test -vvv
       
-      - name: Generate gas report
-        run: cd contracts && forge test --gas-report
+      - name: Generate and display gas report
+        run: cd contracts && forge test --gas-report | tee /tmp/gas-report.txt && cat /tmp/gas-report.txt
         continue-on-error: true
-      
-      - name: Store gas report
-        uses: actions/upload-artifact@v1
-        with:
-          name: gas-report
-          path: contracts/gas-report.txt
