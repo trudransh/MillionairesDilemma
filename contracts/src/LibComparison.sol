@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
-
+/* solhint-enable import-path-check */
 import {euint256, ebool, e} from "@inco/lightning/src/Lib.sol";
-
+/* solhint-enable import-path-check */
 /// @title LibComparison
 /// @dev Library for confidential wealth comparison using Inco Lightning's euint256 and ebool
 library LibComparison {

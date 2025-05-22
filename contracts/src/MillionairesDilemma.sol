@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
-
+/* solhint-enable import-path-check */
 import {euint256, e} from "@inco/lightning/src/Lib.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+/* solhint-enable import-path-check */
 import {LibComparison} from "./LibComparison.sol";
 import {IMillionairesDilemma} from "./interface/IMillionairesDilemma.sol";
 

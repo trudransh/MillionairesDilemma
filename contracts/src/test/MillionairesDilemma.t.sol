@@ -3,10 +3,11 @@ pragma solidity ^0.8.20;
 
 import {MillionairesDilemma} from "../MillionairesDilemma.sol";
 import {LibComparison} from "../LibComparison.sol";
+/* solhint-disable import-path-check */
 import {IncoTest} from "@inco/lightning/src/test/IncoTest.sol";
 import {GWEI} from "@inco/shared/src/TypeUtils.sol";
 import {euint256, e} from "@inco/lightning/src/Lib.sol";
-
+/* solhint-enable import-path-check */
 contract TestMillionairesDilemma is IncoTest {
     MillionairesDilemma public game;
     address public notParticipant = address(0x4);

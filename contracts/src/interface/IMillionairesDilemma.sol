@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
-
+/* solhint-enable import-path-check */
 import {euint256} from "@inco/lightning/src/Lib.sol";
-
+/* solhint-enable import-path-check */
 /// @title MillionairesDilemma Interface
 /// @notice Interface for the MillionairesDilemma confidential wealth comparison contract
 interface IMillionairesDilemma {
