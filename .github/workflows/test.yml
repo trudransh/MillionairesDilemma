@@ -18,13 +18,14 @@ jobs:
         with:
           version: nightly
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      # Setup Bun instead of Node.js
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: '20'
+          bun-version: latest
           
       - name: Install dependencies
-        run: npm install
+        run: bun install
         
       # Copy dependencies into contracts directory
       - name: Prepare dependencies for Forge
