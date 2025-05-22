@@ -18,7 +18,7 @@ jobs:
         with:
           version: nightly
       
-      # Setup Bun instead of Node.js
+      # Setup Bun
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
@@ -26,6 +26,23 @@ jobs:
           
       - name: Install dependencies
         run: bun install
+      
+      # Add Solidity linting
+      - name: Run Solidity Linter
+        run: |
+          bun add -g solhint
+          solhint "contracts/src/**/*.sol"
+        continue-on-error: true
+      
+      # Add JavaScript/TypeScript linting if needed
+      - name: Run ESLint
+        run: |
+          if [ -f .eslintrc.js ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yaml ]; then
+            bun run lint || echo "Linting issues detected"
+          else
+            echo "No ESLint configuration found, skipping"
+          fi
+        continue-on-error: true
         
       # Copy dependencies into contracts directory
       - name: Prepare dependencies for Forge
