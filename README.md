@@ -22,8 +22,6 @@ The Millionaires Dilemma project leverages the Inco Lightning protocol to perfor
 The project is organized into the following main directories:
 
 - `contracts/`: Contains the Solidity smart contracts and related tests.
-- `backend/`: Contains the backend code, including end-to-end tests and configuration files.
-- `docs/`: Contains documentation related to the Inco Lightning protocol and project setup.
 
 ## Quick Start
 

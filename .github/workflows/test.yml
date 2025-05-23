@@ -51,7 +51,8 @@ jobs:
           mkdir -p contracts/lib
           # Copy node_modules dependencies to contracts/lib
           cp -r node_modules/@inco contracts/lib/
-          cp -r node_modules/@openzeppelin contracts/lib/
+          # Only copy one version of OpenZeppelin contracts
+          cp -r node_modules/@openzeppelin/contracts contracts/lib/openzeppelin-contracts
           cp -r node_modules/forge-std contracts/lib/
       
       - name: Build contracts
