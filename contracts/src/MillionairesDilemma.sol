@@ -5,7 +5,7 @@ import {euint256, e} from "@inco/lightning/src/Lib.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {LibComparison} from "./Comparison.sol";
+import {LibComparison} from "./lib/Comparison.sol";
 import {IMillionairesDilemma} from "./interface/IMillionairesDilemma.sol";
 
 /// @title MillionairesDilemma
