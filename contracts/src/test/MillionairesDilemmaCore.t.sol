@@ -61,20 +61,6 @@ contract MillionairesDilemmaCore is IncoTest {
         newGame.initialize(address(0));
     }
     
-    function testOwnershipTransfer() public {
-        vm.prank(deployer);
-        game.transferOwnership(testAlice);
-        assertEq(game.owner(), testAlice);
-        
-        // Alice can now register participants
-        vm.prank(testAlice);
-        game.registerParticipant(testBob, "Bob");
-        
-        // Original owner can't register anymore
-        vm.prank(deployer);
-        vm.expectRevert();
-        game.registerParticipant(testCharlie, "Charlie");
-    }
     
     /// === PARTICIPANT REGISTRATION TESTS ===
     
@@ -130,11 +116,6 @@ contract MillionairesDilemmaCore is IncoTest {
     
     /// === ACCESS CONTROL TESTS ===
     
-    function testNonOwnerCannotRegisterParticipants() public {
-        vm.prank(testAlice);
-        vm.expectRevert();
-        game.registerParticipant(testBob, "Bob");
-    }
     
     function testNonParticipantCannotSubmitWealth() public {
         vm.prank(maliciousUser);

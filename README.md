@@ -43,15 +43,103 @@ bun install
 
 ### Local Test Network
 
-To run a local test network, use Docker:
+1. Open a terminal window and start Anvil:
+   ```bash
+   anvil --chain-id 31337 --block-time 2
+   ```
 
-```bash
-docker compose up -d
-```
-This will start a local Ethereum network with the following accounts pre-funded with test Ether:
+2. Keep this terminal window open. Anvil will display a list of test accounts with private keys. Note these for later use.
 
+#### MetaMask Configuration
 
-This command starts the network, allowing you to deploy and test your dapp in a simulated environment.
+1. **Add Local Network to MetaMask**:
+   - Open MetaMask and click on the network dropdown at the top
+   - Select "Add network" → "Add a network manually"
+   - Fill in the following details:
+     - **Network Name**: Anvil Local
+     - **New RPC URL**: http://localhost:8545
+     - **Chain ID**: 31337
+     - **Currency Symbol**: ETH
+     - **Block Explorer URL**: (leave blank)
+   - Click "Save"
+
+2. **Import Test Accounts to MetaMask**:
+   - In MetaMask, click on your account icon in the top-right corner
+   - Select "Import Account"
+   - Enter the private key of the first account displayed in your Anvil terminal
+     (Example: `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`)
+   - Click "Import"
+   - Repeat to import additional accounts as needed (at least 2-3 accounts for testing)
+
+#### Smart Contract Deployment
+
+1. **Clone the Repository** (if you haven't already):
+   ```bash
+   git clone <repository-url>
+   cd MillionairesDilemma_contracts
+   ```
+
+2. **Install Dependencies**:
+   ```bash
+   cd contracts
+   forge install
+   ```
+
+3. **Deploy the Contracts Manually**:
+   - Open a new terminal window (keep Anvil running in the first one)
+   - Navigate to the project directory's contracts folder
+   - Set environment variables:
+     ```bash
+     export PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+     export RPC_URL=http://localhost:8545
+     ```
+   - Deploy the contracts:
+     ```bash
+     forge script script/Deploy.sol:DeployScript --rpc-url $RPC_URL --broadcast --no-test
+     ```
+   - Look for the contract addresses in the output:
+     ```
+     Implementation deployed at: 0x...
+     Factory deployed at: 0x...
+     ```
+   - Copy both addresses for the next step
+
+4. **Set Environment Variables for Frontend**:
+   - Navigate to the frontend directory:
+     ```bash
+     cd ../frontend
+     ```
+   - Create `.env.local` manually:
+     ```bash
+     echo "NEXT_PUBLIC_MILLIONAIRES_DILEMMA_FACTORY_ADDRESS=0x..." > .env.local
+     echo "NEXT_PUBLIC_CHAIN_ID=31337" >> .env.local
+     ```
+     (Replace `0x...` with the factory address from the deployment output)
+
+#### Frontend Setup
+
+1. **Install Frontend Dependencies**:
+   ```bash
+   cd frontend  # if not already in the frontend directory
+   bun install  # or npm install
+   ```
+
+2. **Verify Contract Address Configuration**:
+   - Open `src/utils/contract.js`
+   - Ensure the fallback address matches your deployed factory address:
+     ```javascript
+     export const MILLIONAIRES_DILEMMA_FACTORY_ADDRESS =
+       process.env.NEXT_PUBLIC_MILLIONAIRES_DILEMMA_FACTORY_ADDRESS || "0x...";
+     ```
+     (Replace `0x...` with your factory address)
+
+3. **Start the Development Server**:
+   ```bash
+   bun dev  # or npm run dev
+   ```
+
+4. **Access the Application**:
+   - Open your browser and navigate to http://localhost:3000
 
 ## Development Environment
 
@@ -119,6 +207,96 @@ Below is a detailed list of tests that covers the core functionality of the Mill
 - **Access Control**: Verifies authorization for all restricted functions
 - **Privacy Protection**: Ensures encrypted values remain confidential throughout the process
 - **Anti-Frontrunning**: Tests protection against transaction ordering attacks
+
+## Implementation Approach
+
+### Contract Architecture
+
+The Millionaire's Dilemma is implemented using a factory pattern with the following key components:
+
+1. **MillionairesDilemma Contract**: The core contract that handles the encrypted wealth comparison logic using Inco's FHE capabilities.
+
+2. **MillionairesDilemmaFactory Contract**: A factory contract that creates new game instances using the minimal proxy pattern (EIP-1167) for gas efficiency.
+
+3. **LibComparison Library**: A specialized library that implements the secure comparison algorithm for encrypted values.
+
+### Why This Approach?
+
+We chose this architecture for several important reasons:
+
+- **Isolation of Game State**: Each game has its own isolated contract instance, preventing data leakage between different games.
+  
+- **Gas Efficiency**: The minimal proxy pattern significantly reduces deployment costs by cloning a reference implementation rather than deploying full contract code for each game.
+  
+- **Modularity**: Separating the comparison logic into a library makes the code more maintainable and allows for future optimizations.
+
+### Fully Homomorphic Encryption (FHE) Implementation
+
+The core of this project leverages Inco Lightning's FHE capabilities to perform computations on encrypted data:
+
+1. **Encrypted Wealth Submission**: Participants submit their wealth as encrypted values (`euint256`) that cannot be decrypted by any party, including the contract itself.
+
+2. **Zero-Knowledge Comparison**: The contract performs wealth comparison operations on encrypted values without ever revealing the underlying amounts.
+
+3. **Selective Result Revelation**: Only the identity of the wealthiest participant is revealed after computation, maintaining privacy for all participants.
+
+### Key Security Features
+
+Our implementation includes several important security measures:
+
+- **Re-encryption**: We implement a secure re-encryption mechanism that isolates each participant's wealth value, preventing even the submitter from accessing it after submission.
+
+- **Access Controls**: The contract carefully manages who can register participants and submit wealth values to prevent unauthorized access.
+
+- **Confidentiality Guarantees**: The design ensures that only the minimal necessary information (winner identity) is revealed, without exposing any actual wealth values.
+
+### Implementation Details
+
+#### Participant Registration
+
+Participants are registered with their Ethereum addresses and display names. The contract maintains a mapping of participant data including:
+```solidity
+struct Participant {
+string name;
+bool isRegistered;
+bool hasSubmitted;
+euint256 wealth;
+}
+```
+
+#### Wealth Submission
+
+The contract provides two methods for submitting encrypted wealth:
+
+1. Raw encrypted bytes submission:
+```solidity
+function submitWealth(bytes memory valueInput) external
+```
+
+2. Direct euint256 submission (for frontend integration):
+```solidity
+function submitWealth(euint256 valueInput) external
+```
+
+Both methods secure the submitted value through re-encryption to ensure complete isolation.
+
+#### Comparison Logic
+
+The wealth comparison uses a secure algorithm that:
+1. Collects all submitted encrypted wealth values
+2. Compares them pairwise to find the maximum value
+3. Returns the encrypted index of the winner
+4. Triggers decryption of only the winner index
+
+#### Game Flow
+
+1. Owner creates a new game instance through the factory
+2. Participants submit their encrypted wealth values
+3. Once all participants submit, anyone can trigger the comparison
+4. The contract processes the comparison and reveals only the winner's identity
+
+This implementation provides a secure, gas-efficient, and fully confidential solution to the classic Millionaire's Dilemma problem using cutting-edge FHE technology on Ethereum.
+
 
 ## Running Tests
 

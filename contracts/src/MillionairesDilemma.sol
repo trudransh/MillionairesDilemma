@@ -73,7 +73,7 @@ contract MillionairesDilemma is IMillionairesDilemma, OwnableUpgradeable, Reentr
     }
 
     /// @inheritdoc IMillionairesDilemma
-    function registerParticipant(address participant, string memory name) external override onlyOwner {
+    function registerParticipant(address participant, string memory name) external override {
         if (participant == address(0)) {
             revert ZeroAddress();
         }

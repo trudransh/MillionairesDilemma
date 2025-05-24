@@ -23,80 +23,101 @@ export default function CreateGame() {
   const publicClient = usePublicClient();
 
   useEffect(() => {
+    console.log("Component mounted");
     setMounted(true);
   }, []);
 
   // Redirect if not connected
   useEffect(() => {
+    console.log("Connection status:", { isConnected, mounted });
     if (mounted && !isConnected) {
+      console.log("Redirecting to home - not connected");
       router.push('/');
     }
   }, [isConnected, mounted, router]);
 
   const addParticipant = () => {
+    console.log("Adding new participant");
     setParticipants([...participants, { address: "", name: "" }]);
   };
 
   const removeParticipant = (index) => {
+    console.log("Attempting to remove participant at index:", index);
     if (participants.length <= 2) {
+      console.log("Cannot remove - minimum participants required");
       setError("At least 2 participants are required");
       return;
     }
     const updated = [...participants];
     updated.splice(index, 1);
+    console.log("Updated participants after removal:", updated);
     setParticipants(updated);
   };
 
   const updateParticipant = (index, field, value) => {
+    console.log("Updating participant:", { index, field, value });
     const updated = [...participants];
     updated[index] = { ...updated[index], [field]: value };
     setParticipants(updated);
   };
 
   const validateForm = () => {
+    console.log("Validating form:", { gameName, participants });
+    
     if (!gameName.trim()) {
+      console.log("Validation failed: Game name required");
       setError("Game name is required");
       return false;
     }
 
     if (participants.length < 2) {
+      console.log("Validation failed: Insufficient participants");
       setError("At least 2 participants are required");
       return false;
     }
 
     for (const p of participants) {
       if (!p.address || !p.address.startsWith('0x')) {
+        console.log("Validation failed: Invalid address format");
         setError("All participant addresses must be valid");
         return false;
       }
       if (!p.name.trim()) {
+        console.log("Validation failed: Missing participant name");
         setError("All participants must have a name");
         return false;
       }
     }
 
-    // Check for duplicate addresses
     const addresses = participants.map(p => p.address.toLowerCase());
     if (new Set(addresses).size !== addresses.length) {
+      console.log("Validation failed: Duplicate addresses found");
       setError("Duplicate participant addresses are not allowed");
       return false;
     }
 
+    console.log("Form validation successful");
     return true;
   };
 
   const handleCreateGame = async () => {
+    console.log("Starting game creation process");
     if (!validateForm()) return;
 
     setIsCreating(true);
     setError("");
 
     try {
-      // Prepare arrays for contract call
       const addresses = participants.map(p => p.address);
       const names = participants.map(p => p.name);
 
-      // Call the factory contract to create a new game
+      console.log("Calling contract with params:", {
+        gameName,
+        addresses,
+        names,
+        factoryAddress: MILLIONAIRES_DILEMMA_FACTORY_ADDRESS
+      });
+
       const hash = await writeContractAsync({
         address: MILLIONAIRES_DILEMMA_FACTORY_ADDRESS,
         abi: MILLIONAIRES_DILEMMA_FACTORY_ABI,
@@ -104,10 +125,12 @@ export default function CreateGame() {
         args: [gameName, addresses, names],
       });
 
-      // Wait for transaction to be mined
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      console.log("Transaction hash:", hash);
 
-      // Find GameCreated event to get the deployed game address
+      console.log("Waiting for transaction receipt...");
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      console.log("Transaction receipt:", receipt);
+
       const events = receipt.logs.map(log => {
         try {
           return publicClient.decodeEventLog({
@@ -116,16 +139,21 @@ export default function CreateGame() {
             topics: log.topics,
           });
         } catch (e) {
+          console.log("Failed to decode event log:", e);
           return null;
         }
       }).filter(Boolean);
 
+      console.log("Decoded events:", events);
+
       const gameCreatedEvent = events.find(event => event.eventName === 'GameCreated');
+      console.log("GameCreated event:", gameCreatedEvent);
       
       if (gameCreatedEvent && gameCreatedEvent.args.gameAddress) {
-        // Redirect to the new game
+        console.log("Redirecting to new game:", gameCreatedEvent.args.gameAddress);
         router.push(`/games/${gameCreatedEvent.args.gameAddress}`);
       } else {
+        console.error("GameCreated event not found or missing game address");
         throw new Error("Failed to get new game address");
       }
     } catch (err) {
@@ -137,6 +165,7 @@ export default function CreateGame() {
   };
 
   if (!mounted || !isConnected) {
+    console.log("Rendering loading state:", { mounted, isConnected });
     return (
       <div className="bg-gradient-to-br from-violet-500 via-indigo-600 to-blue-700 min-h-screen flex items-center justify-center">
         <div className="text-white animate-pulse">Loading...</div>
