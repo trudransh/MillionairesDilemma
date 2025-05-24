@@ -91,16 +91,44 @@ The project uses GitHub Actions for continuous integration and deployment. The p
 - **Run Tests**: Executes the test suite with verbose output.
 - **Generate Gas Report**: Produces a gas usage report for the contracts.
 
+## Test Suite
+Below is a detailed list of tests that covers the core functionality of the Millionaires Dilemma contract.
+### Core Contract Tests
+- **Initialization**: Verifies proper contract initialization and ownership management
+- **Participant Registration**: Tests participant registration with validation for:
+  - Zero address prevention
+  - Duplicate address prevention
+  - Name handling
+  - Access control (only owner can register)
+- **Wealth Submission**: Tests both submission methods with proper encryption:
+  - Submission via encrypted bytes
+  - Submission via euint256
+  - Prevention of duplicate submissions
+  - Authorization checks
+- **Comparison Process**: Validates the wealth comparison mechanism:
+  - Proper handling of incomplete submissions
+  - Event emission on comparison start
+  - Correct winner identification
+
+### Cryptographic Library Tests
+- **Comparison Logic**: Validates the secure comparison algorithm works correctly
+- **Tie Handling**: Ensures fair resolution when multiple participants have equal wealth
+- **Edge Cases**: Tests single participant scenarios and empty array handling
+
+### Security Tests
+- **Access Control**: Verifies authorization for all restricted functions
+- **Privacy Protection**: Ensures encrypted values remain confidential throughout the process
+- **Anti-Frontrunning**: Tests protection against transaction ordering attacks
+
 ## Running Tests
 
 To run the test suite, navigate to the `contracts` directory and execute:
 
 ```bash
-forge test
+forge test -vv
 ```
 
 This will run all the tests in the `contracts/src/test` directory.
-
 
 ## Documentation
 

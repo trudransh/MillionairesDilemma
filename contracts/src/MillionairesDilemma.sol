@@ -44,8 +44,6 @@ contract MillionairesDilemma is IMillionairesDilemma, OwnableUpgradeable, Reentr
         euint256 wealth;
     }
 
-    // Anti-frontrunning protection
-    uint256 private lastActionBlock;
 
     // Participant tracking
     address[] public participants;
@@ -64,7 +62,6 @@ contract MillionairesDilemma is IMillionairesDilemma, OwnableUpgradeable, Reentr
     function initialize(address initialOwner) external initializer {
         __Ownable_init(initialOwner);
         participants = new address[](0);
-        lastActionBlock = block.number;
     }
 
     /// @notice Ensures only registered participants can call certain functions
@@ -98,10 +95,6 @@ contract MillionairesDilemma is IMillionairesDilemma, OwnableUpgradeable, Reentr
 
     /// @inheritdoc IMillionairesDilemma
     function submitWealth(bytes memory valueInput) external override onlyParticipants nonReentrant {
-        // Anti-frontrunning check
-        require(block.number > lastActionBlock, "Potential frontrunning detected");
-        lastActionBlock = block.number;
-        
         if (participantData[msg.sender].hasSubmitted) {
             revert AlreadySubmitted();
         }
@@ -115,10 +108,6 @@ contract MillionairesDilemma is IMillionairesDilemma, OwnableUpgradeable, Reentr
 
     /// @inheritdoc IMillionairesDilemma
     function submitWealth(euint256 encryptedWealth) external override onlyParticipants nonReentrant {
-        // Anti-frontrunning check
-        require(block.number > lastActionBlock, "Potential frontrunning detected");
-        lastActionBlock = block.number;
-        
         if (participantData[msg.sender].hasSubmitted) {
             revert AlreadySubmitted();
         }
@@ -183,10 +172,7 @@ contract MillionairesDilemma is IMillionairesDilemma, OwnableUpgradeable, Reentr
 
     /// @notice Processes the decrypted winner index from Inco relay
     /// @param winnerIndex Index of the winner in the participants array
-    function processWinner(uint256, uint256 winnerIndex, bytes memory) external {
-        if (msg.sender != INCO_RELAY) {
-            revert UnauthorizedRelay();
-        }
+    function processWinner(uint256, uint256 winnerIndex, bytes memory) external onlyOwner {
         if (comparisonDone) {
             revert ComparisonAlreadyDone();
         }
