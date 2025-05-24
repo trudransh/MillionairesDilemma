@@ -17,11 +17,101 @@ Millionaires Dilemma is a confidential smart contract project designed to compar
 
 The Millionaires Dilemma project leverages the Inco Lightning protocol to perform confidential computations on Ethereum. It uses encrypted values to ensure privacy and only reveals the necessary information after computations are complete.
 
-## Project Structure
+## Project Directory Structure
 
-The project is organized into the following main directories:
+The project is organized into two main components: smart contracts and frontend application.
 
-- `contracts/`: Contains the Solidity smart contracts and related tests.
+### Smart Contracts (`/contracts`)
+
+```
+contracts/
+├── script/                  # Deployment scripts
+│   └── Deploy.sol           # Main deployment script
+│
+├── src/                     # Source contracts
+│   ├── interface/           # Contract interfaces
+│   │   └── IMillionairesDilemma.sol  # Main contract interface
+│   │
+│   ├── lib/                 # Contract libraries
+│   │   └── Comparison.sol   # FHE comparison library
+│   │
+│   ├── test/                # Test files
+│   │   └── MillionairesDilemmaCore.t.sol  # Core contract tests
+│   │
+│   ├── MillionairesDilemma.sol      # Main contract implementation
+│   └── MillionairesDilemmaFactory.sol  # Factory contract for game creation
+│
+├── .solhint.json            # Solidity linter configuration
+├── foundry.toml             # Foundry configuration
+└── remappings.txt           # Import remappings for Solidity
+```
+
+#### Key Contract Files
+
+- **MillionairesDilemma.sol**: The core contract that implements the confidential wealth comparison logic using FHE.
+- **MillionairesDilemmaFactory.sol**: Factory contract that deploys new game instances using the minimal proxy pattern.
+- **Comparison.sol**: Library containing the confidential comparison algorithm.
+- **IMillionairesDilemma.sol**: Interface defining the contract's public functions and events.
+
+### Frontend Application (`/frontend`)
+
+```
+frontend/
+├── public/                  # Static assets
+│
+├── src/
+│   ├── abi/                 # Contract ABIs
+│   │   ├── millionairesDilemma.json
+│   │   └── millionairesDilemmaFactory.json
+│   │
+│   ├── app/                 # Next.js app router pages
+│   │   ├── games/           # Game-related pages
+│   │   │   ├── [address]/   # Individual game page (dynamic route)
+│   │   │   └── create/      # Game creation page
+│   │   │
+│   │   ├── layout.js        # Root layout component
+│   │   └── page.js          # Home page
+│   │
+│   ├── components/          # Reusable UI components
+│   │   ├── game/            # Game-specific components
+│   │   ├── modals/          # Modal dialogs
+│   │   ├── NavBar.jsx       # Navigation bar component
+│   │   └── WalletButton.jsx # Wallet connection button
+│   │
+│   ├── provider/            # React context providers
+│   │   ├── balance-provider.js  # Balance tracking provider
+│   │   └── web3-provider.js     # Web3 connection provider
+│   │
+│   └── utils/               # Utility functions
+│       ├── contract.js      # Contract interaction utilities
+│       └── inco-lite.js     # Inco FHE integration utilities
+│
+├── .env.local               # Local environment variables (created during setup)
+├── next.config.js           # Next.js configuration
+├── package.json             # Frontend dependencies
+└── tailwind.config.js       # Tailwind CSS configuration
+```
+
+#### Key Frontend Files
+
+- **contract.js**: Contains contract addresses and ABI imports for interacting with the blockchain.
+- **web3-provider.js**: Sets up the web3 connection and wallet interaction capabilities.
+- **inco-lite.js**: Provides utilities for working with encrypted values using Inco's FHE technology.
+- **[address]/page.js**: Dynamic page for viewing and interacting with a specific game instance.
+- **create/page.js**: Page for creating new game instances with multiple participants.
+
+### Root Directory
+
+```
+/
+├── contracts/               # Smart contract code (described above)
+├── frontend/                # Frontend application (described above)
+├── .github/                 # GitHub configuration files
+│   └── workflows/           # CI/CD workflow definitions
+├── .gitignore               # Git ignore rules
+├── README.md                # Project documentation
+└── start-local.sh           # Local development setup script
+```
 
 ## Quick Start
 
