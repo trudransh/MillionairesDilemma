@@ -28,5 +28,5 @@ NEXT_PUBLIC_MILLIONAIRES_DILEMMA_FACTORY_ADDRESS=$FACTORY_ADDRESS
 NEXT_PUBLIC_CHAIN_ID=31337
 EOF
 
-echo "Setup complete. Local environment is ready."
+echo "Setup complete. Local environment is  ready."
 echo "To terminate Anvil, run: kill $ANVIL_PID" 
