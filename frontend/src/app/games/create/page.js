@@ -101,65 +101,57 @@ export default function CreateGame() {
   };
 
   const handleCreateGame = async () => {
-    console.log("Starting game creation process");
     if (!validateForm()) return;
 
-    setIsCreating(true);
-    setError("");
-
     try {
-      const addresses = participants.map(p => p.address);
-      const names = participants.map(p => p.name);
+      setIsCreating(true);
+      setError("");
 
-      console.log("Calling contract with params:", {
+      console.log("Creating game with params:", {
         gameName,
-        addresses,
-        names,
-        factoryAddress: MILLIONAIRES_DILEMMA_FACTORY_ADDRESS
+        participantAddresses: participants.map(p => p.address),
+        participantNames: participants.map(p => p.name)
       });
 
+      // Prepare the arrays of addresses and names
+      const participantAddresses = participants.map(p => p.address);
+      const participantNames = participants.map(p => p.name);
+
+      // Call the factory contract
       const hash = await writeContractAsync({
         address: MILLIONAIRES_DILEMMA_FACTORY_ADDRESS,
         abi: MILLIONAIRES_DILEMMA_FACTORY_ABI,
         functionName: "createGame",
-        args: [gameName, addresses, names],
+        args: [gameName, participantAddresses, participantNames],
       });
 
       console.log("Transaction hash:", hash);
 
-      console.log("Waiting for transaction receipt...");
+      // Wait for transaction to be mined
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       console.log("Transaction receipt:", receipt);
 
-      const events = receipt.logs.map(log => {
-        try {
-          return publicClient.decodeEventLog({
-            abi: MILLIONAIRES_DILEMMA_FACTORY_ABI,
-            data: log.data,
-            topics: log.topics,
-          });
-        } catch (e) {
-          console.log("Failed to decode event log:", e);
-          return null;
-        }
-      }).filter(Boolean);
-
-      console.log("Decoded events:", events);
-
-      const gameCreatedEvent = events.find(event => event.eventName === 'GameCreated');
-      console.log("GameCreated event:", gameCreatedEvent);
-      
-      if (gameCreatedEvent && gameCreatedEvent.args.gameAddress) {
-        console.log("Redirecting to new game:", gameCreatedEvent.args.gameAddress);
-        router.push(`/games/${gameCreatedEvent.args.gameAddress}`);
+      // Check for events to get the game address
+      if (receipt.status === "success") {
+        // Extract game address from logs
+        const gameCreatedLog = decodeEventLog({
+          abi: MILLIONAIRES_DILEMMA_FACTORY_ABI,
+          data: receipt.logs[0].data,
+          topics: receipt.logs[0].topics,
+        });
+        
+        const gameAddress = gameCreatedLog.args.gameAddress;
+        console.log("New game created at:", gameAddress);
+        
+        router.push(`/games/${gameAddress}`);
       } else {
-        console.error("GameCreated event not found or missing game address");
-        throw new Error("Failed to get new game address");
+        setError("Transaction failed. Check console for details.");
+        setIsCreating(false);
       }
+
     } catch (err) {
       console.error("Error creating game:", err);
       setError(err.message || "Failed to create game");
-    } finally {
       setIsCreating(false);
     }
   };

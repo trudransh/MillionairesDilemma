@@ -45,6 +45,41 @@ export default function GamePage() {
     }
   }, [isConnected, mounted, router]);
 
+  // Enhanced error handling in useEffect
+  useEffect(() => {
+    const fetchGameData = async () => {
+      if (!gameAddress || !isConnected) return;
+
+      try {
+        setIsLoading(true);
+        setError("");
+
+        // First check if the game is created by our factory
+        const isValid = await useReadContract.fetchData({
+          address: MILLIONAIRES_DILEMMA_FACTORY_ADDRESS,
+          abi: MILLIONAIRES_DILEMMA_FACTORY_ABI,
+          functionName: "isGameCreatedByFactory",
+          args: [gameAddress],
+        });
+
+        if (!isValid) {
+          setError("This game was not created by the factory contract");
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch other game data...
+        
+      } catch (err) {
+        console.error("Error fetching game data:", err);
+        setError(err.message || "Failed to load game data");
+        setIsLoading(false);
+      }
+    };
+
+    fetchGameData();
+  }, [gameAddress, isConnected, userAddress]);
+  
   // Verify game is created by factory
   const { data: isValidGame } = useReadContract({
     address: MILLIONAIRES_DILEMMA_FACTORY_ADDRESS,

@@ -8,6 +8,7 @@ import {IncoTest} from "@inco/lightning/src/test/IncoTest.sol";
 import {GWEI} from "@inco/shared/src/TypeUtils.sol";
 import {euint256, ebool, e} from "@inco/lightning/src/Lib.sol";
 import {IMillionairesDilemma} from "../interface/IMillionairesDilemma.sol";
+import {MillionairesDilemmaFactory} from "../MillionairesDilemmaFactory.sol";
 /* solhint-enable import-path-check */
 
 /// @title MillionairesDilemma Core Unit Tests
@@ -229,12 +230,12 @@ contract MillionairesDilemmaCore is IncoTest {
         processAllOperations();
         
         uint256 winnerIdx = getUint256Value(maxIndex);
-        assertEq(winnerIdx, 1); // Index 1 has value 300
+        assertEq(winnerIdx, 1); 
     }
     
     function testComparisonWithTies() public {
         euint256[] memory values = new euint256[](3);
-        values[0] = e.asEuint256(300); // First occurrence should win in a tie
+        values[0] = e.asEuint256(300); 
         values[1] = e.asEuint256(300);
         values[2] = e.asEuint256(200);
         
@@ -242,7 +243,7 @@ contract MillionairesDilemmaCore is IncoTest {
         processAllOperations();
         
         uint256 winnerIdx = getUint256Value(maxIndex);
-        assertEq(winnerIdx, 0); // First occurrence of max value
+        assertEq(winnerIdx, 0);
     }
     
     function testComparisonWithSingleValue() public {
@@ -266,5 +267,46 @@ contract MillionairesDilemmaCore is IncoTest {
     function advanceBlock() internal {
         // Advance the block number to bypass anti-frontrunning protection
         vm.roll(block.number + 1);
+    }
+
+    // Add new test function for factory deployment
+    function testFactoryDeploymentAndGameCreation() public {
+        // Deploy factory
+        MillionairesDilemmaFactory factory = new MillionairesDilemmaFactory();
+        assertEq(factory.owner(), deployer);
+        
+        // Prepare participant data
+        address[] memory participantAddresses = new address[](3);
+        string[] memory participantNames = new string[](3);
+        
+        participantAddresses[0] = testAlice;
+        participantAddresses[1] = testBob;
+        participantAddresses[2] = testCharlie;
+        
+        participantNames[0] = "Alice";
+        participantNames[1] = "Bob";
+        participantNames[2] = "Charlie";
+        
+        // Create a game through the factory
+        // We don't check the first topic (gameAddress) since we don't know it in advance
+        vm.expectEmit(false, true, false, true);
+        emit MillionairesDilemmaFactory.GameCreated(address(0), deployer, "Test Game", 3);
+        address gameAddress = factory.createGame("Test Game", participantAddresses, participantNames);
+        
+        // Verify game creation
+        assertTrue(factory.isGameCreatedByFactory(gameAddress));
+        assertEq(factory.getDeployedGamesCount(), 1);
+        assertEq(factory.getGameAddress(0), gameAddress);
+        
+        // Verify game state
+        MillionairesDilemma gameInstance = MillionairesDilemma(gameAddress);
+        assertEq(gameInstance.owner(), deployer);
+        assertEq(gameInstance.getParticipantCount(), 3);
+        assertTrue(gameInstance.isParticipant(testAlice));
+        assertTrue(gameInstance.isParticipant(testBob));
+        assertTrue(gameInstance.isParticipant(testCharlie));
+        assertEq(gameInstance.getParticipantName(testAlice), "Alice");
+        assertEq(gameInstance.getParticipantName(testBob), "Bob");
+        assertEq(gameInstance.getParticipantName(testCharlie), "Charlie");
     }
 }

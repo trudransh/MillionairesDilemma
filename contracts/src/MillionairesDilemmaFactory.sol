@@ -2,15 +2,11 @@
 pragma solidity ^0.8.20;
 
 import {MillionairesDilemma} from "./MillionairesDilemma.sol";
-import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title MillionairesDilemmaFactory
-/// @notice Factory for creating MillionairesDilemma competition instances with enhanced security
+/// @notice Factory for creating MillionairesDilemma competition instances with a simple new instance approach
 contract MillionairesDilemmaFactory is Ownable {
-    // Implementation contract - immutable for security
-    address public immutable implementation;
-    
     // Track all deployed games
     address[] public deployedGames;
     mapping(address => bool) public isGameCreatedByFactory;
@@ -22,13 +18,10 @@ contract MillionairesDilemmaFactory is Ownable {
         uint256 participantCount
     );
     
-    constructor(address _implementation) Ownable(msg.sender) {
-        // Verify the implementation is valid before setting
-        require(_implementation != address(0), "Invalid implementation address");
-        implementation = _implementation;
+    constructor() Ownable(msg.sender) {
     }
     
-    /// @notice Creates a new wealth comparison game using the minimal clone pattern
+    /// @notice Creates a new wealth comparison game by deploying a new instance
     /// @param gameName Name of this competition game
     /// @param participantAddresses Addresses of all participants
     /// @param participantNames Names of all participants
@@ -41,11 +34,11 @@ contract MillionairesDilemmaFactory is Ownable {
         require(participantAddresses.length == participantNames.length, "Arrays length mismatch");
         require(participantAddresses.length >= 2, "Need at least 2 participants");
         
-        // Create a clone of the implementation with minimal proxy
-        gameAddress = Clones.clone(implementation);
+        // Create a new instance of MillionairesDilemma
+        MillionairesDilemma game = new MillionairesDilemma();
+        gameAddress = address(game);
         
         // Initialize the game
-        MillionairesDilemma game = MillionairesDilemma(gameAddress);
         game.initialize(msg.sender);
         
         // Register participants 
